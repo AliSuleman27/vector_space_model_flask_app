@@ -1,18 +1,14 @@
-
 import shelve
 import re
 from pathlib import Path
 import os
 import nltk
-import numpy
+import numpy as np
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-from pathlib import Path
-import re
-import numpy as np
 from collections import Counter
 import math
-from sklearn.metrics.pairwise import cosine_similarity
+from scipy.spatial.distance import cosine  # ✅ Use scipy cosine
 
 class VectorSpaceQueryProcessor:
 
@@ -88,8 +84,14 @@ class VectorSpaceQueryProcessor:
     def rank_documents(self, query, alpha=0.001):
         try:
             query_vector = self.process_query(query)
-            similarities = cosine_similarity(query_vector, self.tfidf_matrix)
-            doc_scores = [(index + 1, score) for index, score in enumerate(similarities[0]) if score > alpha]
+            query_vector = query_vector.flatten()  # Ensure it's 1D
+
+            similarities = []
+            for doc_vector in self.tfidf_matrix:
+                score = 1 - cosine(query_vector, doc_vector)
+                similarities.append(score)
+
+            doc_scores = [(index + 1, score) for index, score in enumerate(similarities) if score > alpha]
             sorted_doc_scores = sorted(doc_scores, key=lambda x: x[1], reverse=True)
             ranked_doc_ids = [doc_id for doc_id, _ in sorted_doc_scores]
             ranked_scores = [score for _, score in sorted_doc_scores]
@@ -97,5 +99,3 @@ class VectorSpaceQueryProcessor:
             return ranked_doc_ids, ranked_scores
         except:
             return "Error In: Ranking documents"
-
-    
