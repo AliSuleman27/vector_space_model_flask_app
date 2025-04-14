@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Document Viewer</title>
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #dbeafe, #bfdbfe, #a4ccfb);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px;
+            backdrop-filter: blur(6px);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="fixed top-0 left-0 w-full bg-blue-900/90 backdrop-blur-md text-white shadow-md py-3 px-6 flex justify-between items-center text-sm z-50 rounded-b-lg">
+            <div class="flex items-center">
+                <h1 class="text-xl font-semibold mr-4">Search<span class="text-blue-200">Forge</span></h1>
+                <p class="text-sm mr-6">Information Retrieval Model <span class="font-bold">(VSM)</span></p>
+            </div>
+            <div class="flex items-center space-x-6">
+                <a href="https://github.com/AliSuleman27" class="flex items-center space-x-2 hover:text-gray-300 transform transition duration-300">
+                    <svg class="w-5 h-5 fill-white hover:scale-110 transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.207 11.387.6.113.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.757-1.333-1.757-1.091-.745.083-.729.083-.729 1.205.084 1.838 1.24 1.838 1.24 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.76-1.605-2.665-.304-5.467-1.332-5.467-5.932 0-1.311.469-2.381 1.235-3.221-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.957-.266 1.983-.398 3.003-.403 1.02.005 2.046.137 3.003.403 2.295-1.552 3.3-1.23 3.3-1.23.645 1.653.24 2.873.105 3.176.768.84 1.235 1.91 1.235 3.221 0 4.611-2.807 5.625-5.478 5.921.43.372.812 1.102.812 2.222v3.293c0 .319.192.694.8.577 4.769-1.587 8.207-6.084 8.207-11.387 0-6.627-5.373-12-12-12z"/></svg>
+                    <span class="hidden sm:inline">GitHub</span>
+                </a>
+                <a href="https://www.linkedin.com/in/ali-suleman-a511942aa/" class="flex items-center space-x-2 hover:text-gray-300 transform transition duration-300">
+                    <svg class="w-5 h-5 fill-white hover:scale-110 transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4.98 3.5c0 1.378-1.12 2.5-2.5 2.5s-2.5-1.122-2.5-2.5 1.12-2.5 2.5-2.5 2.5 1.122 2.5 2.5zm.02 4.5h-5v15h5v-15zm7.48 0h-5v15h5v-8.35c0-3.705 4.482-4.02 4.482 0v8.35h4.999v-10.604c0-6.626-7.481-6.399-9.481-3.124v-1.272z"/></svg>
+                    <span class="hidden sm:inline">LinkedIn</span>
+                </a>
+                <p class="font-semibold text-white ml-6">Developed By: Ali Suleman</p>
+            </div>
+        </nav>
+    </header>
+    <div class="w-full max-w-3xl mt-20 flex justify-end">
+        <a href="{{ url_for('my_app') }}" class="px-6 py-2 bg-black text-white rounded-lg shadow-md hover:bg-gray-800 flex items-center gap-2">
+            ⬅ Back to Search
+        </a>
+    </div>
+
+    <div class="w-full max-w-3xl flex justify-end mt-4">
+        <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text shadow-sm">
+            Search - A Vector Space IR Model
+        </h2>
+    </div>
+
+    <div class="w-full max-w-3xl mt-6 glass p-6">
+        <h2 class="text-2xl font-bold text-blue-800">{{ context.title }}</h2>
+
+        <h3 class="text-xl font-semibold text-gray-700 mt-4">Keywords</h3>
+        <div class="mt-2 flex flex-wrap gap-2">
+            {% for keyword in context.keywords.split(',') %}
+                <button class="px-4 py-1 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600">
+                    {{ keyword }}
+                </button>
+            {% endfor %}
+        </div>
+
+        <h3 class="text-xl font-semibold text-gray-700 mt-6">Abstract</h3>
+        <p class="text-gray-600 mt-2">{{ context.abstract }}</p>
+    </div>
+
+</body>
+</html>

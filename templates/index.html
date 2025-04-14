@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Search Forge</title>
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #dbeafe, #bfdbfe, #a4ccfb);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 6px;
+            backdrop-filter: blur(6px);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            padding: 16px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="fixed top-0 left-0 w-full bg-blue-900/90 backdrop-blur-md text-white shadow-md py-3 px-6 flex justify-between items-center text-sm z-50 rounded-b-lg">
+            <div class="flex items-center">
+                <h1 class="text-xl font-semibold mr-4">Search<span class="text-blue-200">Forge</span></h1>
+                <p class="text-sm mr-6">Information Retrieval Model <span class="font-bold">(VSM)</span></p>
+            </div>
+            <div class="flex items-center space-x-6">
+                <a href="https://github.com/AliSuleman27" class="flex items-center space-x-2 hover:text-gray-300 transform transition duration-300">
+                    <svg class="w-5 h-5 fill-white hover:scale-110 transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.207 11.387.6.113.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.757-1.333-1.757-1.091-.745.083-.729.083-.729 1.205.084 1.838 1.24 1.838 1.24 1.07 1.835 2.807 1.305 3.492.998.108-.776.418-1.305.76-1.605-2.665-.304-5.467-1.332-5.467-5.932 0-1.311.469-2.381 1.235-3.221-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.957-.266 1.983-.398 3.003-.403 1.02.005 2.046.137 3.003.403 2.295-1.552 3.3-1.23 3.3-1.23.645 1.653.24 2.873.105 3.176.768.84 1.235 1.91 1.235 3.221 0 4.611-2.807 5.625-5.478 5.921.43.372.812 1.102.812 2.222v3.293c0 .319.192.694.8.577 4.769-1.587 8.207-6.084 8.207-11.387 0-6.627-5.373-12-12-12z"/></svg>
+                    <span class="hidden sm:inline">GitHub</span>
+                </a>
+                <a href="https://www.linkedin.com/in/ali-suleman-a511942aa/" class="flex items-center space-x-2 hover:text-gray-300 transform transition duration-300">
+                    <svg class="w-5 h-5 fill-white hover:scale-110 transition" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4.98 3.5c0 1.378-1.12 2.5-2.5 2.5s-2.5-1.122-2.5-2.5 1.12-2.5 2.5-2.5 2.5 1.122 2.5 2.5zm.02 4.5h-5v15h5v-15zm7.48 0h-5v15h5v-8.35c0-3.705 4.482-4.02 4.482 0v8.35h4.999v-10.604c0-6.626-7.481-6.399-9.481-3.124v-1.272z"/></svg>
+                    <span class="hidden sm:inline">LinkedIn</span>
+                </a>
+                <p class="font-semibold text-white ml-6">Developed By: Ali Suleman</p>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Search Form -->
+    <form action="{{ url_for('my_app') }}" method="post" class="w-full max-w-2xl mt-24 relative glass flex items-center border border-gray-300 rounded-lg shadow-sm focus-within:ring-2 focus-within:ring-blue-500">
+        <input type="text" placeholder="Search Here" class="flex-grow px-4 py-2 bg-transparent focus:outline-none" name="search_text" required>
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-600 mr-2">Go!</button>
+        <button type="button" id="info-btn" class="bg-gray-300 text-gray-700 px-3 py-2 rounded-lg shadow-md hover:bg-gray-400">ℹ️</button>
+    </form>
+
+    {% if context.error %}
+    <h2 id="error-message" class="text-sm text-red-600 border border-red-400 rounded-md p-2 mt-4 bg-red-100 w-fit">
+        {{ context.error }}
+    </h2>
+    <script>
+        setTimeout(() => {
+            const errorMsg = document.getElementById("error-message");
+            if (errorMsg) errorMsg.style.display = "none";
+        }, 3000);
+    </script>
+    {% endif %}
+
+    <!-- Results Section -->
+    <div class="w-full max-w-2xl mt-8 glass">
+        <div class="mt-4 p-4 bg-white shadow rounded-lg">
+            {% if context.total_results > 0 %}
+                <h2 class="text-lg font-semibold text-gray-800">{{ context.total_results }} Results Found</h2>
+                <p class="text-gray-700 mt-2">Query: {{context.query}}</p>
+                {% for doc in context.docs %}
+                <div class="mt-4 p-4 bg-gray-300 rounded-lg shadow">
+                    <a href="{{ url_for('getDoc', doc_path=doc.doc_path) }}">
+                        <h2 class="text-lg font-semibold text-blue-800">{{ doc.title }}</h2>
+                    </a>
+                    <p class="text-gray-700 mt-2">{{ doc.text[:150] }}...</p>
+                </div>
+                {% endfor %}
+            {% else %}
+                <h2 class="text-lg font-semibold text-gray-800">No results found</h2>
+                <p class="text-gray-600 mt-2">Try modifying your query and searching again.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Info Popup -->
+    <div id="info-popup" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 class="text-lg font-semibold">Search Guide</h2>
+            <ul class="text-gray-600 mt-2 space-y-2">
+                <li><strong>VSM Query:</strong> Enter any keywords — results are ranked by cosine similarity to your query.</li>
+                <li><strong>Example:</strong> <code>machine learning deep neural networks</code> will show most relevant documents at the top.</li>
+            </ul>
+            <button id="close-popup" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Close</button>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const infoPopup = document.getElementById("info-popup");
+        const infoBtn = document.getElementById("info-btn");
+        const closePopup = document.getElementById("close-popup");
+        
+        if (infoBtn && closePopup && infoPopup) {
+            infoBtn.addEventListener("click", () => {
+                infoPopup.classList.remove("hidden");
+            });
+            closePopup.addEventListener("click", () => {
+                infoPopup.classList.add("hidden");
+            });
+        }
+    });
+    </script>
+</body>
+</html>
