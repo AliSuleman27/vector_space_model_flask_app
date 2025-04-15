@@ -1,101 +1,123 @@
-import shelve
+import math
 import re
-from pathlib import Path
-import os
-import nltk
 import numpy as np
+from collections import Counter
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-from collections import Counter
-import math
-from scipy.spatial.distance import cosine  # ✅ Use scipy cosine
+from pathlib import Path
+import shelve
+
 
 class VectorSpaceQueryProcessor:
-
     def __init__(self, stop_words_directory, index_dir):
-        self.stop_words_directory = stop_words_directory
-        self.index_dir = index_dir
-        
-        stop_word_file = self.read_file(stop_words_directory)
-        self.stop_words = word_tokenize(stop_word_file)
-        
-        with shelve.open(index_dir) as db:
-            self.vocab_index = db['vocab_index']
-            self.tfidf_matrix = db['tfidf_matrix']
-            self.df = db['doc_freq']
+        try:
+            self.stop_words_directory = stop_words_directory
+            self.index_dir = index_dir
 
-        print("TF-IDF matrix, df_index, and vocab_index loaded successfully.")
-        print(f"Vocabulary size: {len(self.vocab_index)}")
-        print(f"Document Frequency Index: {len(self.df)}")
-        print(f"TF-IDF matrix shape: {self.tfidf_matrix.shape}")
+            stop_word_file = self.read_file(stop_words_directory)
+            if isinstance(stop_word_file, str) and stop_word_file.startswith("Error In"):
+                raise Exception(stop_word_file)
+            self.stop_words = word_tokenize(stop_word_file)
 
-        self.V = len(self.vocab_index)
-        self.N = len(self.tfidf_matrix)
+            with shelve.open(index_dir) as db:
+                self.vocab_index = db['vocab_index']
+                self.tfidf_matrix = db['tfidf_matrix']
+                self.df = db['doc_freq']
+                self.doc_norms = db['norms']
 
-        self.lemmatizer = WordNetLemmatizer()
+            print("TF-IDF matrix and vocab_index loaded successfully.")
+            print(f"Vocabulary size: {len(self.vocab_index)}")
+            print(f"TF-IDF matrix shape: {self.tfidf_matrix.shape}")
+
+            self.V = len(self.vocab_index)
+            self.N = len(self.tfidf_matrix)
+            lemmatizer = WordNetLemmatizer()
+
+        except Exception as e:
+            print(f"Error In: __init__ -> {str(e)}")
 
     def read_file(self, filepath):
-        return Path(filepath).read_text()
-    
-    def preprocess_and_get_features(self, filepath=None, stop_words=None, text=None):
         try:
-            if text is None and filepath:
-                text = self.read_file(filepath)
-            elif text is None:
-                raise ValueError("Either text or filepath must be provided.")
+            return Path(filepath).read_text()
+        except Exception as e:
+            return f"Error In: read_file -> {str(e)}"
 
-            tokens = []
-            for word in word_tokenize(text):
-                if re.match(r'\w+', word):
-                    if '-' in word:
-                        tokens.extend(word.split('-'))
-                    else:
-                        tokens.append(word)
-                elif re.match(r'^\d{1,3}(?:,\d{3})*$', word):
-                    tokens.append(word.replace(',', ''))
-
-            stop_words = stop_words or self.stop_words
-
-            return [
-                self.lemmatizer.lemmatize(word.lower())
-                for word in tokens
-                if word.lower() not in stop_words
+    def preprocess_and_get_features(self, text):
+        try:
+            text = text.lower()
+            text = re.sub(r'[^a-zA-Z\s]', ' ', text)
+            text = re.sub(r'\s+', ' ', text)
+            tokens = word_tokenize(text)
+            clean_tokens = [
+                self.lemmatizer.lemmatize(token)
+                for token in tokens
+                if token.isalpha() and token not in self.stop_words
             ]
-        except:
-            return "Error In: Feature Extraction"
+            return clean_tokens
+        except Exception as e:
+            return f"Error In: preprocess_and_get_features -> {str(e)}"
 
     def process_query(self, query):
         try:
             tokens = self.preprocess_and_get_features(text=query)
+            if isinstance(tokens, str):
+                return tokens
+
             tf = Counter(tokens)
             vec = np.zeros(self.V)
-            
+
             for term, freq in tf.items():
                 if term in self.vocab_index:
                     tf_val = 1 + math.log10(freq) if freq > 0 else 0
                     df = self.df[term]
                     idf_val = math.log10(self.N / df)
                     vec[self.vocab_index[term]] = tf_val * idf_val
-            
+
             return vec.reshape(1, -1)
-        except:
-            return "Error In: Processing Query"
+        except Exception as e:
+            return f"Error In: process_query -> {str(e)}"
 
     def rank_documents(self, query, alpha=0.001):
         try:
-            query_vector = self.process_query(query)
-            query_vector = query_vector.flatten()  # Ensure it's 1D
+            tokens = self.preprocess_and_get_features(text=query)
+            if isinstance(tokens, str):
+                return tokens
 
-            similarities = []
-            for doc_vector in self.tfidf_matrix:
-                score = 1 - cosine(query_vector, doc_vector)
-                similarities.append(score)
+            tf = Counter(tokens)
+            query_values = {}
+            query_norm_sq = 0.0
 
-            doc_scores = [(index + 1, score) for index, score in enumerate(similarities) if score > alpha]
-            sorted_doc_scores = sorted(doc_scores, key=lambda x: x[1], reverse=True)
-            ranked_doc_ids = [doc_id for doc_id, _ in sorted_doc_scores]
-            ranked_scores = [score for _, score in sorted_doc_scores]
+            for term, freq in tf.items():
+                if term in self.vocab_index:
+                    idx = self.vocab_index[term]
+                    tf_val = 1 + math.log10(freq)
+                    df = self.df[term]
+                    idf_val = math.log10(self.N / df)
+                    weight = tf_val * idf_val
+                    query_values[idx] = weight
+                    query_norm_sq += weight ** 2
 
-            return ranked_doc_ids, ranked_scores
-        except:
-            return "Error In: Ranking documents"
+            if not query_values or query_norm_sq == 0:
+                return [], []
+
+            query_norm = math.sqrt(query_norm_sq)
+            scores = []
+
+            for doc_id in range(self.N):
+                dot_product = 0.0
+                for idx, q_weight in query_values.items():
+                    dot_product += q_weight * self.tfidf_matrix[doc_id][idx]
+
+                doc_norm = self.doc_norms[doc_id]
+                similarity = dot_product / (query_norm * doc_norm) if doc_norm != 0 else 0.0
+
+                if similarity > alpha:
+                    scores.append((doc_id + 1, round(similarity, 4)))
+
+            sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+            ranked_doc_ids = [doc_id for doc_id, _ in sorted_scores]
+            ranked_scores = [score for _, score in sorted_scores]
+
+            return ranked_doc_ids[:100], ranked_scores[:100]
+        except Exception as e:
+            return f"Error In: rank_documents -> {str(e)}"
