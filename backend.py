@@ -31,7 +31,7 @@ class VectorSpaceQueryProcessor:
 
             self.V = len(self.vocab_index)
             self.N = len(self.tfidf_matrix)
-            lemmatizer = WordNetLemmatizer()
+            self.lemmatizer = WordNetLemmatizer()
 
         except Exception as e:
             print(f"Error In: __init__ -> {str(e)}")

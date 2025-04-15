@@ -15,24 +15,26 @@ def my_app():
         query = request.form['search_text']
 
         if qp:
-            results, _ = qp.rank_documents(query)
-            if "Error in" in results:
-                context["error"] = results
+            rank_output = qp.rank_documents(query)
+            if isinstance(rank_output, str) and "Error In" in rank_output:
+                context["error"] = rank_output
                 context["query"] = query
             else:
+                results, _ = rank_output
                 docs = []
                 for result in results:
                     doc_path = str(int(result))
                     file_content = qp.read_file("Abstracts/" + doc_path + ".txt").strip().split("\n", 1)
                     title = file_content[0] if len(file_content) > 0 else "Untitled"
                     text = file_content[1] if len(file_content) > 1 else ""
-                    docs.append({'doc_path':doc_path,'title': title, 'text': text})
+                    docs.append({'doc_path': doc_path, 'title': title, 'text': text})
 
                 context = {  
                     'total_results': len(results),
                     'docs': docs,
-                    'query' : query
+                    'query': query
                 }
+
     
     return render_template('index.html', context=context)
 
